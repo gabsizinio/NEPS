@@ -1,0 +1,5 @@
+A = input()
+B = input()
+A = int(A)
+B = int(B)
+print(f"{A/B:.2f}")

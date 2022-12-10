@@ -1,0 +1,16 @@
+{
+  "name": "js-bootcamp",
+  "version": "1.0.0",
+  "main": "Area_do_Retangulo.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "chalk": "^5.0.1",
+    "moment": "^2.29.4"
+  }
+}
