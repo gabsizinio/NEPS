@@ -1,12 +1,10 @@
 from flask import Flask
-# Importamos a classe Migrate
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 
 from config import Config
 
 db = SQLAlchemy()
-# Criamos uma instância da classe Migrate
 migrate = Migrate()
 
 def create_app():
@@ -16,14 +14,13 @@ def create_app():
     
     db.init_app(app)
 
-    # Importamos os modelos criados
     from models import User
-
-    # Inicializamos o Flask-Migrate com nossa aplicação
     migrate.init_app(app, db)
 
-    @app.route("/")
-    def hello_world():
-        return "<h1>Hello, World!</h1>"
+    # Importamos o controller
+    from controllers import user_controller
+
+    # Registramos o controller em nossa aplicação
+    app.register_blueprint(user_controller)
 
     return app
