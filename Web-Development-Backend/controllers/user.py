@@ -1,83 +1,80 @@
+import json
 from datetime import datetime
 
-from factory import db
+from factory import api, db
 from flask import Blueprint, jsonify
 from flask.globals import request
-from models.user import User
-
-from sqlalchemy.exc import InterfaceError
-from sqlalchemy.orm.exc import UnmappedInstanceError
+from models.user import User, UserCreate, UserResponse, UserResponseList, UserEdit
+from spectree import Response
+from utils.responses import DefaultResponse
 
 user_controller = Blueprint("user_controller", __name__, url_prefix="/users")
 
 @user_controller.get("/")
+@api.validate(resp=Response(HTTP_200=UserResponseList), tags=["users"])
 def get_users():
-    
+    """
+    Get all users
+    """
     users = User.query.all()
 
-    return jsonify(
-        [
-            {
-                "id": user.id,
-                "username": user.username,
-                "email": user.email,
-                "birthdate": user.birthdate.isoformat() if user.birthdate else None,
-                "created_at" : user.created_at.isoformat(),
-            }
-            for user in users
-        ]
-    ), 200
+    response = UserResponseList(
+        __root__ = [UserResponse.from_orm(user).dict() for user in users]
+    ).json()
+
+    return jsonify(json.loads(response))
 
 
 @user_controller.get("/<int:user_id>")
+@api.validate(resp=Response(HTTP_200=UserResponse, HTTP_404=DefaultResponse), tags=["users"])
 def get_user(user_id):
-
+    """
+    Get a specified user
+    """
     user = User.query.get(user_id)
 
     if user is None:
         return {"msg": f"There is no user with id {user_id}"}, 404
 
-    return {
-        "id": user.id,
-        "username": user.username,
-        "email": user.email,
-        "birthdate": user.birthdate.isoformat() if user.birthdate else None,
-        "created_at" : user.created_at.isoformat(),
-    }, 200
+    response = UserResponse.from_orm(user).json()
+
+    return json.loads(response), 200
 
 
 @user_controller.post("/")
+@api.validate(json=UserCreate, resp=Response(HTTP_201=None), tags=["users"])
 def post_user():
-    
+    """
+    Create an user
+    """
     data = request.json
 
     if User.query.filter_by(username=data["username"]).first():
         return {"msg": "username not avaiable"}, 409
 
+    if "birthdate" in data:
+        if data["birthdate"].endswith("Z"):
+            data["birthdate"] = data["birthdate"][:-1]
+
     user = User(
         username=data["username"], 
         email=data["email"],
+        password=data["password"],
         birthdate=datetime.fromisoformat(data["birthdate"]) if "birthdate" in data else None
     )
-    try:
-        db.session.add(user)
-        db.session.commit()
-    except InterfaceError: # Caso ocorra exeção do tipo InterfaceError
-        db.session.rollback()
-        return {"msg": "An Interface Error occured."}, 400
-    except UnmappedInstanceError: # Caso ocorra exeção do tipo UnmappedInstanceError
-        db.session.rollback()
-        return {"msg": "An Unmapped Instance Error occured."}, 400
-    except:
-        db.session.rollback()
-        return {"msg": "Something went wrong, call an adult."}, 400
+
+    db.session.add(user)
+    db.session.commit()
 
     return {"msg": "User created successfully."}, 201
 
 
 @user_controller.put("/<int:user_id>")
+@api.validate(json=UserEdit, resp=Response(HTTP_200=None, HTTP_404=None), tags=["users"])
 def put_user(user_id):
-    
+    """
+    Update an user
+    """
     user = User.query.get(user_id)
 
     if user is None:
@@ -85,18 +82,25 @@ def put_user(user_id):
 
     data = request.json
 
-    user.username = data["username"]
-    user.email = data["email"]
     if "birthdate" in data:
+        if data["birthdate"].endswith("Z"):
+            data["birthdate"] = data["birthdate"][:-1]
         user.birthdate = datetime.fromisoformat(data["birthdate"])
 
+    user.username = data["username"]
+    user.email = data["email"]
+        
     db.session.commit()
 
     return {"msg": "User was updated."}, 200
 
 
 @user_controller.delete("/<int:user_id>")
+@api.validate(resp=Response(HTTP_200=DefaultResponse, HTTP_404=DefaultResponse), tags=["users"])
 def delete_user(user_id):
+    """
+    Delete an user
+    """
     user = User.query.get(user_id)
 
     if user is None:
