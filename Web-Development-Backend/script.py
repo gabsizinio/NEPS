@@ -2,15 +2,19 @@ from datetime import datetime
 
 from factory import db
 from main import app
-from models import User
-
+from models import User, Post
+from flask import request
 
 with app.app_context():
-    # Obtemos o usuário que queremos deletar
-    user = User.query.get(1)
+    posts = Post.query.filter(Post.text.ilike(f"%neps%"))
 
-    # Adicionamos a remoção em uma sessão
-    db.session.delete(user)
+    posts_pagination = Post.query.paginate(1, 5)
 
-    # Enviamos as mudanças ao banco de dados
-    db.session.commit()
+    post = Post.order_by(Post.created.desc())
+
+    search = request.args.get("search", "")
+
+
+    
+
+

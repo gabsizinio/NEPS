@@ -1,6 +1,6 @@
 from factory import api
 from flask import Blueprint, request
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token, jwt_required
 from models import User
 from pydantic import BaseModel
 from spectree import Response
@@ -44,6 +44,7 @@ def login():
 
 @auth_controller.post("/logout")
 @api.validate(resp=Response(HTTP_200=DefaultResponse), tags=["auth"])
+@jwt_required()
 def logout():
     """Logout user"""
     return {"msg": "Logout successfully."}
